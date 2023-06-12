@@ -1,5 +1,12 @@
 <template>
     <div class="frame">
+        <form class="setting" @submit.prevent="submitForm">
+            <input type="date" v-model="from" @change="updateToDate">
+            <span>～</span>
+            <input type="date" v-model="to" :min="from">
+            <button class="btn" type="submit">決定</button>
+        </form>
+
         <div v-for="index in 5" :key="index" class="chart-container"></div>
     </div>
 </template>
@@ -12,6 +19,8 @@ import Highcharts from 'highcharts'
 const dt = ref([])
 const dataSets = ref([])
 const categoryData = ref(["水温（℃）", "塩分（ppt）", "伝導率（mS/cm）", "Do（%）", "Do（mg/L）"])
+const from = ref('');
+const to = ref('');
 
 onMounted(async () => {
     const place = location.pathname.split('/').slice(-2)[0]
@@ -56,6 +65,38 @@ const renderCharts = () => {
         })
     }
 }
+
+const updateToDate = () => {
+    if (from.value && to.value < from.value) {
+        to.value = from.value;
+    }
+};
+
+const submitForm = async () => {
+    if (from.value && to.value) {
+        const place = location.pathname.split('/').slice(-2)[0]
+        const tank = location.pathname.split('/').slice(-1)[0]
+        const url = 'http://localhost:8000/graph/' + place + '/' + tank + '/' + from.value + '/' + to.value
+
+        await axios.get(url).then((res) => {
+            if (res.data.msg == "--Success--") {
+                dt.value = res.data.data.map(item => item.dt)
+                const columns = Object.keys(res.data.data[0]).filter(key => key !== 'dt');
+                dataSets.value = columns.map(column => ({
+                    name: column,
+                    data: res.data.data.map(item => item[column])
+                }));
+                renderCharts();
+            }
+
+            else {
+                dt.value = []
+                dataSets.value = [[], [], [], [], []]
+                renderCharts();
+            }
+        })
+    }
+};
 </script>
   
 <style scoped>
@@ -74,6 +115,48 @@ const renderCharts = () => {
 
     margin-bottom: 20px;
     margin: 20px;
+}
+
+.center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    /* センターリングするための高さを指定します */
+}
+
+.setting {
+    position: relative;
+    margin: 5% 0 0 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn {
+    min-width: 30%;
+    height: 70%;
+    color: var(--color-white);
+    background-color: var(--color-blue);
+    border: 0;
+    cursor: pointer;
+    font-size: x-large;
+
+    position: relative;
+    margin: 0 0 0 0;
+    overflow: hidden;
+}
+
+input[type="date"] {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: var(--color-white);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 14px;
+    margin-right: 2%;
+    margin-left: 2%;
+    width: 20%;
 }
 </style>
   
