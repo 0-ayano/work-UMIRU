@@ -180,9 +180,7 @@ def get_table_information(place, tank):
     
     try:
         with connection.cursor() as cursor:
-            # sql = f"SELECT * FROM {place}_{tank} ORDER BY dt DESC LIMIT 50;"
-            # sql = f"SELECT * FROM {place}_{tank} WHERE dt >= (SELECT MAX(dt) FROM {place}_{tank}) - INTERVAL 1 WEEK AND ((HOUR(dt) = 10 AND MINUTE(dt) = 0) OR (HOUR(dt) = 15 AND MINUTE(dt) = 0)) ORDER BY dt DESC;"
-            sql = f"SELECT * FROM {place}_{tank} WHERE ((HOUR(dt) = 10 AND MINUTE(dt) = 0) OR (HOUR(dt) = 15 AND MINUTE(dt) = 0)) ORDER BY dt DESC LIMIT 14;"
+            sql = f"SELECT * FROM {place}_{tank} ORDER BY dt DESC LIMIT 60;"
             cursor.execute(sql)
             result = cursor.fetchall()
 
@@ -210,8 +208,15 @@ def get_table_information_10time(place, tank):
     
     try:
         with connection.cursor() as cursor:
-            # sql = f"SELECT * FROM {place}_{tank} WHERE (HOUR(dt) = 10 AND MINUTE(dt) = 0) ORDER BY dt DESC LIMIT 7;"
-            sql = f"SELECT * FROM {place}_{tank} WHERE dt >= (SELECT MAX(dt) FROM {place}_{tank}) - INTERVAL 1 WEEK AND (HOUR(dt) = 10 AND MINUTE(dt) = 0) ORDER BY dt DESC;"
+            sql = f"SELECT DATE_FORMAT(t1.dt, '%Y-%m-%d') AS date, \
+                            CONCAT(HOUR(t1.dt), ':', MINUTE(t1.dt), ':', SECOND(t1.dt)) AS time1, \
+                            t1.temp AS temp1, \
+                            t1.shibu, \
+                            t1.condact, \
+                            t1.do_per, \
+                            t1.do_mg \
+                    FROM {place}_{tank} as t1 \
+                    WHERE (HOUR(t1.dt) = 10 AND MINUTE(t1.dt) = 0) ORDER BY date DESC LIMIT 7;"
             cursor.execute(sql)
             result = cursor.fetchall()
 
@@ -239,8 +244,15 @@ def get_table_information_15time(place, tank):
     
     try:
         with connection.cursor() as cursor:
-            # sql = f"SELECT * FROM {place}_{tank} WHERE (HOUR(dt) = 15 AND MINUTE(dt) = 0) ORDER BY dt DESC LIMIT 7;"
-            sql = f"SELECT * FROM {place}_{tank} WHERE dt >= (SELECT MAX(dt) FROM {place}_{tank}) - INTERVAL 1 WEEK AND (HOUR(dt) = 15 AND MINUTE(dt) = 0) ORDER BY dt DESC;"
+            sql = f"SELECT DATE_FORMAT(t2.dt, '%Y-%m-%d') AS date, \
+                            CONCAT(HOUR(t2.dt), ':', MINUTE(t2.dt), ':', SECOND(t2.dt)) AS time2, \
+                            t2.temp AS temp2, \
+                            t2.shibu, \
+                            t2.condact, \
+                            t2.do_per, \
+                            t2.do_mg \
+                    FROM {place}_{tank} as t2 \
+                    WHERE (HOUR(t2.dt) = 15 AND MINUTE(t2.dt) = 0) ORDER BY date DESC LIMIT 7;"
 
             cursor.execute(sql)
             result = cursor.fetchall()

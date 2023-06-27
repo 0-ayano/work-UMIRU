@@ -1,12 +1,5 @@
 <template>
     <div class="frame">
-        <!-- <form class="setting" @submit.prevent="submitForm">
-            <input type="date" v-model="from" @change="updateToDate">
-            <span>～</span>
-            <input type="date" v-model="to" :min="from">
-            <button class="btn" type="submit">決定</button>
-        </form> -->
-
         <div v-for="index in 5" :key="index" class="chart-container"></div>
     </div>
 </template>
@@ -16,13 +9,13 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import Highcharts from 'highcharts'
 
-const dt = ref([])
 const dataSets1 = ref([])
 const dataSets2 = ref([])
 const categoryData = ref(["水温", "塩分", "伝導率", "Do（%）", "Do（mg/L）"])
 const unit = ref(["℃", "ppt", "mS / cm", "%", "mg / L"])
-const from = ref('');
-const to = ref('');
+const from = ref('')
+const to = ref('')
+const date = ref()
 
 onMounted(async () => {
     const place = location.pathname.split('/').slice(-2)[0]
@@ -31,8 +24,7 @@ onMounted(async () => {
     const url2 = 'http://localhost:8000/first_graph_15/' + place + '/' + tank
 
     await axios.get(url1).then((res1) => {
-        dt.value = res1.data.data.map(item => item.dt).reverse();
-        const columns = Object.keys(res1.data.data[0]).filter(key => key !== 'dt');
+        const columns = Object.keys(res1.data.data[0]);
         dataSets1.value = columns.map(column => ({
             name: column,
             data: res1.data.data.map(item => item[column]).reverse()
@@ -40,16 +32,94 @@ onMounted(async () => {
     })
 
     await axios.get(url2).then((res2) => {
-        dt.value = res2.data.data.map(item => item.dt).reverse();
-        const columns = Object.keys(res2.data.data[0]).filter(key => key !== 'dt');
+        const columns = Object.keys(res2.data.data[0]);
         dataSets2.value = columns.map(column => ({
             name: column,
             data: res2.data.data.map(item => item[column]).reverse()
         }));
-        renderCharts();
     })
 
-    // console.log(dataSets1.value)
+    var len = dataSets1.value[0].data.length
+    var tmp1 = [
+        { name: 'date', data: [] },
+        { name: 'time', data: [] },
+        { name: 'temp', data: [] },
+        { name: 'shibu', data: [] },
+        { name: 'condact', data: [] },
+        { name: 'do_per', data: [] },
+        { name: 'do_mg', data: [] }
+    ];
+
+    var tmp2 = [
+        { name: 'date', data: [] },
+        { name: 'time', data: [] },
+        { name: 'temp', data: [] },
+        { name: 'shibu', data: [] },
+        { name: 'condact', data: [] },
+        { name: 'do_per', data: [] },
+        { name: 'do_mg', data: [] }
+    ];
+    
+    while (dataSets1.value[0].data.length != 0 || dataSets2.value[0].data.length != 0) {
+        if (dataSets1.value[0].data.length == 0) {
+            tmp2[0].data.push(dataSets2.value[0].data[0])
+            tmp1[0].data.push(dataSets2.value[0].data[0])
+            dataSets2.value[0].data.shift()
+            for (var j = 1; j < dataSets2.value.length; j++) {
+                tmp2[j].data.push(dataSets2.value[j].data[0])
+                tmp1[j].data.push(null)
+                dataSets2.value[j].data.shift()
+            }
+        }
+
+        if (dataSets2.value[0].data.length == 0) {
+            tmp1[0].data.push(dataSets1.value[0].data[0])
+            tmp2[0].data.push(dataSets1.value[0].data[0])
+            dataSets1.value[0].data.shift()
+            for (var j = 1; j < dataSets1.value.length; j++) {
+                tmp1[j].data.push(dataSets1.value[j].data[0])
+                tmp2[j].data.push(null)
+                dataSets1.value[j].data.shift()
+            }
+        }
+
+        else if (new Date(dataSets1.value[0].data[0]) < new Date(dataSets2.value[0].data[0])) {
+            tmp1[0].data.push(dataSets1.value[0].data[0])
+            tmp2[0].data.push(dataSets1.value[0].data[0])
+            dataSets1.value[0].data.shift()
+            for (var j = 1; j < dataSets1.value.length; j++) {
+                tmp1[j].data.push(dataSets1.value[j].data[0])
+                tmp2[j].data.push(null)
+                dataSets1.value[j].data.shift()
+            }
+        }
+
+        else if (new Date(dataSets1.value[0].data[0]) > new Date(dataSets2.value[0].data[0])) {
+            tmp2[0].data.push(dataSets2.value[0].data[0])
+            tmp1[0].data.push(dataSets2.value[0].data[0])
+            dataSets2.value[0].data.shift()
+            for (var j = 1; j < dataSets2.value.length; j++) {
+                tmp2[j].data.push(dataSets2.value[j].data[0])
+                tmp1[j].data.push(null)
+                dataSets2.value[j].data.shift()
+            }
+        }
+
+        else {
+            for (var j = 0; j < dataSets2.value.length; j++) {
+                tmp1[j].data.push(dataSets1.value[j].data[0])
+                tmp2[j].data.push(dataSets1.value[j].data[0])
+                dataSets1.value[j].data.shift()
+                dataSets2.value[j].data.shift()
+            }
+        }
+    }
+
+    date.value = tmp1.find(item => item.name === 'date').data
+    dataSets1.value = tmp1.filter(item => item.name !== 'time' && item.name !== 'date')
+    dataSets2.value = tmp2.filter(item => item.name !== 'time' && item.name !== 'date')
+
+    renderCharts();
 })
 
 const renderCharts = () => {
@@ -64,7 +134,7 @@ const renderCharts = () => {
             labels: {
                 // enabled: false,
             },
-            categories: dt.value.map((item) => formatDate(item)),
+            categories: date.value
         },
         yAxis: {
             title: {
@@ -92,51 +162,6 @@ const renderCharts = () => {
         })
     }
 }
-
-const updateToDate = () => {
-    if (from.value && to.value < from.value) {
-        to.value = from.value;
-    }
-};
-
-const submitForm = async () => {
-    if (from.value && to.value) {
-        const place = location.pathname.split('/').slice(-2)[0]
-        const tank = location.pathname.split('/').slice(-1)[0]
-        const url = 'http://localhost:8000/graph/' + place + '/' + tank + '/' + from.value + '/' + to.value
-
-        await axios.get(url).then((res) => {
-            if (res.data.msg == "--Success--") {
-                dt.value = res.data.data.map(item => item.dt)
-                const columns = Object.keys(res.data.data[0]).filter(key => key !== 'dt');
-                dataSets1.value = columns.map(column => ({
-                    name: column,
-                    data: res.data.data.map(item => item[column])
-                }));
-                renderCharts();
-            }
-
-            else {
-                dt.value = []
-                dataSets1.value = [[], [], [], [], []]
-                renderCharts();
-            }
-        })
-    }
-};
-
-const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-
-    // return `${year}年${month}月${day}日 ${hours}時${minutes}分${seconds}秒`;
-    return `${year}年${month}月${day}日`;
-};
 </script>
   
 <style scoped>
