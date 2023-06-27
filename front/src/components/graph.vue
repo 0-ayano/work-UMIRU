@@ -59,7 +59,7 @@ onMounted(async () => {
         { name: 'do_per', data: [] },
         { name: 'do_mg', data: [] }
     ];
-    
+
     while (dataSets1.value[0].data.length != 0 || dataSets2.value[0].data.length != 0) {
         if (dataSets1.value[0].data.length == 0) {
             tmp2[0].data.push(dataSets2.value[0].data[0])
@@ -108,7 +108,7 @@ onMounted(async () => {
         else {
             for (var j = 0; j < dataSets2.value.length; j++) {
                 tmp1[j].data.push(dataSets1.value[j].data[0])
-                tmp2[j].data.push(dataSets1.value[j].data[0])
+                tmp2[j].data.push(dataSets2.value[j].data[0])
                 dataSets1.value[j].data.shift()
                 dataSets2.value[j].data.shift()
             }
@@ -134,12 +134,21 @@ const renderCharts = () => {
             labels: {
                 // enabled: false,
             },
-            categories: date.value
+            categories: date.value,
+            crosshair: true,
         },
         yAxis: {
             title: {
                 text: ''
             },
+            min: 0,
+        },
+        tooltip: {
+            headerFormat: '<span style="font-size:10px">{point.key}</span><table>',
+            pointFormat: '',
+            footerFormat: '</table>',
+            shared: true,
+            useHTML: true
         },
         series: [],
     }
@@ -158,9 +167,21 @@ const renderCharts = () => {
             }];
             options.title.text = [categoryData.value[index]]
             options.yAxis.title.text = [unit.value[index]]
+            options.yAxis.min = calculateAverage(dataSets1.value[index].data)
+            options.tooltip.pointFormat = '<tr><td style="color:{series.color};padding:0">{series.name}: </td>' +
+                                          '<td style="padding:0"><b>{point.y:.f} ' + unit.value[index] + '</b></td></tr>'
             Highcharts.chart(container, options)
         })
     }
+}
+
+const calculateAverage = (data) => {
+    var sum = 0;
+    for (var i = 0; i < data.length; i++) {
+        sum += data[i];
+    }
+
+    return (sum / data.length) * 0.9;
 }
 </script>
   
